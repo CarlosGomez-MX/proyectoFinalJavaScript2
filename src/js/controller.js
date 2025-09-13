@@ -1,47 +1,71 @@
 // src/js/controller.js
 
-// Import del sprite como URL (Parcel). En algunos setups puede no ser string.
-// Por eso abajo lo normalizamos con asUrlString().
+// Import del sprite con URL generada por Parcel (cumple pasos 21–22)
 import iconsImport from '../img/icons.svg?url';
 
-// Normaliza lo que sea (string, { default }, URL) a string
+// Normaliza a string (por si el import viene como objeto/URL)
 function asUrlString(mod) {
   if (!mod) return '';
   if (typeof mod === 'string') return mod;
-  if (typeof mod.default === 'string') return mod.default;  // ESM default
-  if (typeof mod.href === 'string') return mod.href;        // URL object
+  if (typeof mod.default === 'string') return mod.default;
+  if (typeof mod.href === 'string') return mod.href;
+  try { return new URL('../img/icons.svg', import.meta.url).href; } catch { return ''; }
+}
+const icons = asUrlString(iconsImport);
+window.__icons = icons; // debug opcional
+
+const recipeContainer = document.querySelector('.recipe');
+
+// --- FIX Netlify: sprite inline + reescritura de <use> ---
+
+async function injectSpriteInline() {
   try {
-    // Último recurso: resolvemos la URL manualmente
-    return new URL('../img/icons.svg', import.meta.url).href;
-  } catch {
-    return '';
+    if (document.getElementById('__sprite_inline__')) return;
+    const resp = await fetch(icons, { cache: 'no-store' });
+    if (!resp.ok) throw new Error('No se pudo cargar icons.svg');
+    const text = await resp.text();
+
+    const holder = document.createElement('div');
+    holder.id = '__sprite_inline__';
+    holder.style.position = 'absolute';
+    holder.style.width = '0';
+    holder.style.height = '0';
+    holder.style.overflow = 'hidden';
+    holder.style.visibility = 'hidden';
+    holder.setAttribute('aria-hidden', 'true');
+    holder.innerHTML = text.trim().startsWith('<svg')
+      ? text
+      : `<svg xmlns="http://www.w3.org/2000/svg">${text}</svg>`;
+    document.body.insertAdjacentElement('afterbegin', holder);
+  } catch (e) {
+    console.error('[icons] injectSpriteInline error:', e);
   }
 }
 
-const icons = asUrlString(iconsImport);
+function rewriteUsesToFragments(root = document) {
+  root.querySelectorAll('use').forEach(u => {
+    const raw = u.getAttribute('href') || u.getAttribute('xlink:href') || '';
+    if (!raw) return;
+    const frag = raw.includes('#') ? raw.slice(raw.indexOf('#')) : '';
+    if (!frag) return;
+    u.setAttribute('href', frag);
+    u.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', frag);
+  });
+}
 
-// Para depurar en consola: debe ser una string tipo "/icons.XXXX.svg"
-window.__icons = icons;
-
-const recipeContainer = document.querySelector('.recipe');
+// --- UI helpers ---
 
 function renderSpinner(parentEl) {
   const ref = `${icons}#icon-loader`;
   const markup = `
     <div class="spinner">
-      <svg>
-        <use href="${ref}" xlink:href="${ref}"></use>
-      </svg>
+      <svg><use href="${ref}" xlink:href="${ref}"></use></svg>
     </div>
   `;
   parentEl.innerHTML = '';
   parentEl.insertAdjacentHTML('afterbegin', markup);
 }
 
-/**
- * Parchea los <use> que quedaron en el HTML estático con
- * href="src/img/icons.svg#..." -> href="${icons}#..."
- */
 function patchStaticIconUses() {
   document.querySelectorAll('use').forEach(u => {
     const raw = u.getAttribute('href') || u.getAttribute('xlink:href') || '';
@@ -62,9 +86,8 @@ async function showRecipe() {
       'https://forkify-api.herokuapp.com/api/v2/recipes/5ed6604591c37cdc054bc886'
     );
     const data = await resp.json();
-    if (data.status !== 'success' || !data.data?.recipe) {
+    if (data.status !== 'success' || !data.data?.recipe)
       throw new Error(data.message || 'Recipe not found');
-    }
 
     const r = data.data.recipe;
     const recipe = {
@@ -116,22 +139,18 @@ function renderRecipe(recipe) {
     <div class="recipe__ingredients">
       <h2 class="heading--2">Recipe ingredients</h2>
       <ul class="recipe__ingredient-list">
-        ${recipe.ingredients
-          .map(ing => {
-            return `
-              <li class="recipe__ingredient">
-                <svg class="recipe__icon">
-                  <use href="${refCheck}" xlink:href="${refCheck}"></use>
-                </svg>
-                <div class="recipe__quantity">${ing.quantity ?? ''}</div>
-                <div class="recipe__description">
-                  <span class="recipe__unit">${ing.unit ?? ''}</span>
-                  ${ing.description}
-                </div>
-              </li>
-            `;
-          })
-          .join('')}
+        ${recipe.ingredients.map(ing => `
+          <li class="recipe__ingredient">
+            <svg class="recipe__icon">
+              <use href="${refCheck}" xlink:href="${refCheck}"></use>
+            </svg>
+            <div class="recipe__quantity">${ing.quantity ?? ''}</div>
+            <div class="recipe__description">
+              <span class="recipe__unit">${ing.unit ?? ''}</span>
+              ${ing.description}
+            </div>
+          </li>
+        `).join('')}
       </ul>
     </div>
 
@@ -153,15 +172,26 @@ function renderRecipe(recipe) {
 
   recipeContainer.innerHTML = '';
   recipeContainer.insertAdjacentHTML('afterbegin', markup);
+
+  // Asegura que los <use> recién insertados apunten al sprite inline (#icon-…)
+  rewriteUsesToFragments(recipeContainer);
 }
 
-// Init
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    patchStaticIconUses();
-    showRecipe();
-  });
-} else {
+// --- Init ---
+async function init() {
+  // a) Ajusta <use> del HTML estático a la URL del sprite empaquetado
   patchStaticIconUses();
+
+  // b) Inyecta el sprite inline y reescribe TODOS los <use> a #icon-…
+  await injectSpriteInline();
+  rewriteUsesToFragments(document);
+
+  // c) Pinta la receta
   showRecipe();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }
