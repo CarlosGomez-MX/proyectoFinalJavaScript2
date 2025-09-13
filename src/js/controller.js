@@ -124,13 +124,29 @@ function renderRecipe(recipe) {
 }
 
 function patchStaticIconUses() {
-  const nodes = document.querySelectorAll('use[href*="src/img/icons.svg"]');
-  nodes.forEach(u => {
-    const href = u.getAttribute('href');
-    const [, frag] = href.split('#');
-    if (frag) u.setAttribute('href', `${icons}#${frag}`);
+  const uses = Array.from(document.querySelectorAll('use')).filter(u => {
+    const h1 = u.getAttribute('href') || '';
+    const h2 = u.getAttribute('xlink:href') || '';
+    return h1.includes('src/img/icons.svg') || h2.includes('src/img/icons.svg');
+  });
+
+  uses.forEach(u => {
+    const raw = u.getAttribute('href') || u.getAttribute('xlink:href') || '';
+    const frag = raw.includes('#') ? raw.split('#')[1] : '';
+    if (!frag) return;
+
+    const finalRef = `${icons}#${frag}`;
+    u.setAttribute('href', finalRef);
+    u.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', finalRef);
   });
 }
 
-patchStaticIconUses();
-showRecipe();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    patchStaticIconUses();
+    showRecipe();
+  });
+} else {
+  patchStaticIconUses();
+  showRecipe();
+}
