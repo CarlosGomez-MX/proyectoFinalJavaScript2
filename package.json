@@ -1,0 +1,17 @@
+{
+  "name": "forkify",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "Juan Carlos Gómez Rivera",
+  "type": "commonjs",
+  "source": "index.html",
+  "scripts": {
+    "start": "parcel index.html",
+    "build": "parcel build index.html"
+  },
+  "devDependencies": {
+    "@parcel/transformer-sass": "^2.15.4",
+    "parcel": "^2.15.4"
+  }
+}
