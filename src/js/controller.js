@@ -1,9 +1,7 @@
 // src/js/controller.js
 
-// Import del sprite con URL generada por Parcel (cumple pasos 21–22)
 import iconsImport from '../img/icons.svg?url';
 
-// Normaliza a string (por si el import viene como objeto/URL)
 function asUrlString(mod) {
   if (!mod) return '';
   if (typeof mod === 'string') return mod;
@@ -12,11 +10,11 @@ function asUrlString(mod) {
   try { return new URL('../img/icons.svg', import.meta.url).href; } catch { return ''; }
 }
 const icons = asUrlString(iconsImport);
-window.__icons = icons; // debug opcional
+window.__icons = icons; // debug
 
 const recipeContainer = document.querySelector('.recipe');
 
-// --- FIX Netlify: sprite inline + reescritura de <use> ---
+// --- Sprite inline + reescritura de <use> + namespace ---
 
 async function injectSpriteInline() {
   try {
@@ -42,6 +40,15 @@ async function injectSpriteInline() {
   }
 }
 
+function ensureSvgNamespace(root = document) {
+  root.querySelectorAll('svg').forEach(svg => {
+    if (!svg.getAttribute('xmlns')) svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    if (!svg.getAttribute('xmlns:xlink')) {
+      svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    }
+  });
+}
+
 function rewriteUsesToFragments(root = document) {
   root.querySelectorAll('use').forEach(u => {
     const raw = u.getAttribute('href') || u.getAttribute('xlink:href') || '';
@@ -51,19 +58,6 @@ function rewriteUsesToFragments(root = document) {
     u.setAttribute('href', frag);
     u.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', frag);
   });
-}
-
-// --- UI helpers ---
-
-function renderSpinner(parentEl) {
-  const ref = `${icons}#icon-loader`;
-  const markup = `
-    <div class="spinner">
-      <svg><use href="${ref}" xlink:href="${ref}"></use></svg>
-    </div>
-  `;
-  parentEl.innerHTML = '';
-  parentEl.insertAdjacentHTML('afterbegin', markup);
 }
 
 function patchStaticIconUses() {
@@ -76,6 +70,21 @@ function patchStaticIconUses() {
     u.setAttribute('href', finalRef);
     u.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', finalRef);
   });
+}
+
+// --- UI ---
+
+function renderSpinner(parentEl) {
+  const ref = `${icons}#icon-loader`;
+  const markup = `
+    <div class="spinner">
+      <svg>
+        <use href="${ref}" xlink:href="${ref}"></use>
+      </svg>
+    </div>
+  `;
+  parentEl.innerHTML = '';
+  parentEl.insertAdjacentHTML('afterbegin', markup);
 }
 
 async function showRecipe() {
@@ -173,20 +182,16 @@ function renderRecipe(recipe) {
   recipeContainer.innerHTML = '';
   recipeContainer.insertAdjacentHTML('afterbegin', markup);
 
-  // Asegura que los <use> recién insertados apunten al sprite inline (#icon-…)
+  // Namespace + reescritura en el bloque recién insertado
+  ensureSvgNamespace(recipeContainer);
   rewriteUsesToFragments(recipeContainer);
 }
 
-// --- Init ---
 async function init() {
-  // a) Ajusta <use> del HTML estático a la URL del sprite empaquetado
   patchStaticIconUses();
-
-  // b) Inyecta el sprite inline y reescribe TODOS los <use> a #icon-…
   await injectSpriteInline();
+  ensureSvgNamespace(document);
   rewriteUsesToFragments(document);
-
-  // c) Pinta la receta
   showRecipe();
 }
 
