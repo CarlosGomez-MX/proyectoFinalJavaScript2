@@ -123,4 +123,14 @@ function renderRecipe(recipe) {
   recipeContainer.insertAdjacentHTML('afterbegin', markup);
 }
 
+function patchStaticIconUses() {
+  const nodes = document.querySelectorAll('use[href*="src/img/icons.svg"]');
+  nodes.forEach(u => {
+    const href = u.getAttribute('href');
+    const [, frag] = href.split('#');
+    if (frag) u.setAttribute('href', `${icons}#${frag}`);
+  });
+}
+
+patchStaticIconUses();
 showRecipe();
