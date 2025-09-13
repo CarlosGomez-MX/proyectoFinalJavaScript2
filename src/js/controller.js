@@ -1,34 +1,39 @@
 // src/js/controller.js
 
-// 1) Cargamos la URL real del sprite generado por Parcel (para fetchearlo e inyectarlo)
+// URL del sprite procesado por Parcel
 const iconsUrl = new URL('../img/icons.svg', import.meta.url).href;
 
 const recipeContainer = document.querySelector('.recipe');
 
-// Inyecta el contenido del sprite SVG en el DOM (display:none) para poder referenciar con #icon-...
+// Inyecta el sprite en el DOM (estilos compatibles con <use>)
 async function injectSprite() {
-  const resp = await fetch(iconsUrl);
+  const resp = await fetch(iconsUrl, { cache: 'no-store' });
   if (!resp.ok) throw new Error('No se pudo cargar icons.svg');
   const text = await resp.text();
+
   const holder = document.createElement('div');
-  holder.style.display = 'none';
+  // Evitar display:none (algunos navegadores no resuelven refs en nodos ocultos)
+  holder.style.position = 'absolute';
+  holder.style.width = '0';
+  holder.style.height = '0';
+  holder.style.overflow = 'hidden';
+  holder.style.visibility = 'hidden';
   holder.setAttribute('aria-hidden', 'true');
   holder.innerHTML = text;
   document.body.insertBefore(holder, document.body.firstChild);
 }
 
-// Reescribe los <use> estáticos del HTML que apuntan a src/img/icons.svg#... -> #icon-...
-function patchStaticIconUsesToFragment() {
-  const uses = document.querySelectorAll('use');
+// Reescribe todos los <use> estáticos a solo fragmento (#icon-…)
+function rewriteUsesToFragments(root = document) {
+  const uses = root.querySelectorAll('use');
   uses.forEach(u => {
-    const href = u.getAttribute('href') || u.getAttribute('xlink:href') || '';
-    if (!href) return;
-    // si viene como "src/img/icons.svg#icon-xxx", extraemos el fragmento
-    const frag = href.includes('#') ? href.split('#')[1] : '';
+    const raw = u.getAttribute('href') || u.getAttribute('xlink:href') || '';
+    if (!raw) return;
+    const frag = raw.includes('#') ? raw.split('#')[1] : '';
     if (!frag) return;
-    const finalRef = `#${frag}`;
-    u.setAttribute('href', finalRef);
-    u.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', finalRef);
+    const ref = `#${frag}`;
+    u.setAttribute('href', ref);
+    u.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', ref);
   });
 }
 
@@ -40,6 +45,8 @@ function renderSpinner(parentEl) {
   `;
   parentEl.innerHTML = '';
   parentEl.insertAdjacentHTML('afterbegin', markup);
+  // Asegura que el <use> nuevo también apunte al fragmento correcto
+  rewriteUsesToFragments(parentEl);
 }
 
 async function showRecipe() {
@@ -95,20 +102,16 @@ function renderRecipe(recipe) {
     <div class="recipe__ingredients">
       <h2 class="heading--2">Recipe ingredients</h2>
       <ul class="recipe__ingredient-list">
-        ${recipe.ingredients
-          .map(ing => {
-            return `
-              <li class="recipe__ingredient">
-                <svg class="recipe__icon"><use href="#icon-check"></use></svg>
-                <div class="recipe__quantity">${ing.quantity ?? ''}</div>
-                <div class="recipe__description">
-                  <span class="recipe__unit">${ing.unit ?? ''}</span>
-                  ${ing.description}
-                </div>
-              </li>
-            `;
-          })
-          .join('')}
+        ${recipe.ingredients.map(ing => `
+          <li class="recipe__ingredient">
+            <svg class="recipe__icon"><use href="#icon-check"></use></svg>
+            <div class="recipe__quantity">${ing.quantity ?? ''}</div>
+            <div class="recipe__description">
+              <span class="recipe__unit">${ing.unit ?? ''}</span>
+              ${ing.description}
+            </div>
+          </li>
+        `).join('')}
       </ul>
     </div>
 
@@ -125,15 +128,15 @@ function renderRecipe(recipe) {
       </a>
     </div>
   `;
-
   recipeContainer.innerHTML = '';
   recipeContainer.insertAdjacentHTML('afterbegin', markup);
+  rewriteUsesToFragments(recipeContainer);
 }
 
-// init: inyecta sprite, corrige <use> estáticos y carga receta
+// Init: inyecta el sprite, reescribe <use> del HTML y carga receta
 async function init() {
   await injectSprite();
-  patchStaticIconUsesToFragment();
+  rewriteUsesToFragments(document);
   showRecipe();
 }
 
