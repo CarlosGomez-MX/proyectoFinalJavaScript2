@@ -1,29 +1,25 @@
 // src/js/controller.js
 
-// URL del sprite procesado por Parcel
-const iconsUrl = new URL('../img/icons.svg', import.meta.url).href;
+// 1) Inyecta el sprite SVG en línea (sin fetch, en build-time)
+import iconsSprite from 'bundle-text:../img/icons.svg';
 
 const recipeContainer = document.querySelector('.recipe');
 
-// Inyecta el sprite en el DOM (estilos compatibles con <use>)
-async function injectSprite() {
-  const resp = await fetch(iconsUrl, { cache: 'no-store' });
-  if (!resp.ok) throw new Error('No se pudo cargar icons.svg');
-  const text = await resp.text();
-
+// Inserta el sprite en el DOM (oculto pero accesible para <use href="#icon-...">)
+function injectSpriteInline() {
   const holder = document.createElement('div');
-  // Evitar display:none (algunos navegadores no resuelven refs en nodos ocultos)
+  // No uses display:none; algunos navegadores no resuelven refs en nodos display:none
   holder.style.position = 'absolute';
   holder.style.width = '0';
   holder.style.height = '0';
   holder.style.overflow = 'hidden';
   holder.style.visibility = 'hidden';
   holder.setAttribute('aria-hidden', 'true');
-  holder.innerHTML = text;
+  holder.innerHTML = iconsSprite;
   document.body.insertBefore(holder, document.body.firstChild);
 }
 
-// Reescribe todos los <use> estáticos a solo fragmento (#icon-…)
+// Reescribe TODOS los <use> a solo fragmento (#icon-…)
 function rewriteUsesToFragments(root = document) {
   const uses = root.querySelectorAll('use');
   uses.forEach(u => {
@@ -45,7 +41,6 @@ function renderSpinner(parentEl) {
   `;
   parentEl.innerHTML = '';
   parentEl.insertAdjacentHTML('afterbegin', markup);
-  // Asegura que el <use> nuevo también apunte al fragmento correcto
   rewriteUsesToFragments(parentEl);
 }
 
@@ -133,11 +128,11 @@ function renderRecipe(recipe) {
   rewriteUsesToFragments(recipeContainer);
 }
 
-// Init: inyecta el sprite, reescribe <use> del HTML y carga receta
-async function init() {
-  await injectSprite();
-  rewriteUsesToFragments(document);
-  showRecipe();
+// Init
+function init() {
+  injectSpriteInline();                 // sprite inline disponible
+  rewriteUsesToFragments(document);     // corrige <use> del HTML estático
+  showRecipe();                         // carga receta
 }
 
 if (document.readyState === 'loading') {
