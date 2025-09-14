@@ -1,34 +1,29 @@
 // src/js/model.js
+import { API_URL } from './config.js';
+import { getJSON } from './helpers.js';
 
 export const state = {
   recipe: {},
 };
 
-export async function loadRecipe(id) {
+export const loadRecipe = async function (id) {
   try {
-    const res = await fetch(`https://forkify-api.herokuapp.com/api/v2/recipes/${id}`);
-    const data = await res.json();
+    const data = await getJSON(`${API_URL}${id}`);
 
-    if (!res.ok || data.status !== 'success' || !data.data?.recipe) {
-      throw new Error(data.message || 'Recipe not found');
-    }
-
-    const r = data.data.recipe;
-
-    // Normaliza la receta al formato que usa la vista
+    const { recipe } = data.data;
     state.recipe = {
-      id: r.id,
-      title: r.title,
-      publisher: r.publisher,
-      sourceUrl: r.source_url,
-      image: r.image_url,
-      servings: r.servings,
-      cookTime: r.cooking_time,
-      ingredients: r.ingredients,
+      id: recipe.id,
+      title: recipe.title,
+      publisher: recipe.publisher,
+      sourceUrl: recipe.source_url,
+      image: recipe.image_url,
+      servings: recipe.servings,
+      cookingTime: recipe.cooking_time,
+      ingredients: recipe.ingredients,
     };
-
-    // console.log('model.state.recipe:', state.recipe);
   } catch (err) {
+    // Importante: propagar para que el controller pueda pintar el error en la UI
+    console.error('model.loadRecipe ->', err);
     throw err;
   }
-}
+};
