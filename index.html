@@ -9,14 +9,15 @@
     <link rel="stylesheet" href="src/sass/main.scss" />
     <title>Forkify · Busca entre 1,000,000 de recetas</title>
   </head>
+
   <body>
     <div class="container">
       <header class="header">
         <img src="src/img/logo.png" alt="Forkify" class="header__logo" />
 
         <form class="search" aria-label="Buscar recetas">
-          <input class="search__field" type="text" placeholder="Busca entre 1,000,000 de recetas…" aria-label="Buscar" />
-          <button class="btn search__btn" type="submit" aria-label="Buscar">
+          <input type="text" class="search__field" placeholder="Busca entre 1,000,000 de recetas…" aria-label="Buscar" />
+          <button class="btn search__btn" type="submit">
             <svg class="search__icon" aria-hidden="true">
               <use href="src/img/icons.svg#icon-search"></use>
             </svg>
@@ -35,19 +36,22 @@
               </button>
             </li>
             <li class="nav__item">
-              <button class="nav__btn nav__btn--bookmarks" type="button">
+              <button class="nav__btn nav__btn--bookmarks" type="button" aria-haspopup="true" aria-expanded="false">
                 <svg class="nav__icon" aria-hidden="true">
                   <use href="src/img/icons.svg#icon-bookmark"></use>
                 </svg>
                 <span>Marcadores</span>
               </button>
+
               <div class="bookmarks">
                 <ul class="bookmarks__list">
                   <div class="message">
                     <div>
-                      <svg aria-hidden="true"><use href="src/img/icons.svg#icon-smile"></use></svg>
+                      <svg aria-hidden="true">
+                        <use href="src/img/icons.svg#icon-smile"></use>
+                      </svg>
                     </div>
-                    <p>Aún no hay marcadores.</p>
+                    <p>Aún no tienes marcadores. Encuentra una receta agradable y márcala :</p>
                   </div>
                 </ul>
               </div>
@@ -59,8 +63,11 @@
       <div class="search-results">
         <ul class="results" aria-live="polite"></ul>
         <div class="pagination" aria-label="Paginación"></div>
+
         <p class="copyright">
-          © Proyecto educativo. Diseño de <a class="twitter-link" target="_blank" rel="noreferrer" href="https://twitter.com/jonasschmedtman">Jonas Schmedtmann</a>.
+          &copy; Copyright by
+          <a class="twitter-link" target="_blank" href="https://twitter.com/jonasschmedtman">Jonas Schmedtmann</a>.
+          Use for learning or your portfolio. Don't claim as your own.
         </p>
       </div>
 
@@ -73,22 +80,30 @@
       <form class="upload">
         <div class="upload__column">
           <h3 class="upload__heading">Datos de la receta</h3>
-          <label>Título</label><input name="title" type="text" required />
-          <label>URL de origen</label><input name="sourceUrl" type="url" required />
-          <label>URL de imagen</label><input name="image" type="url" required />
-          <label>Autor</label><input name="publisher" type="text" required />
-          <label>Tiempo (min)</label><input name="cookingTime" type="number" min="1" required />
-          <label>Porciones</label><input name="servings" type="number" min="1" required />
+          <label>Título</label><input required name="title" type="text" />
+          <label>URL de origen</label><input required name="sourceUrl" type="text" />
+          <label>URL de imagen</label><input required name="image" type="text" />
+          <label>Autor</label><input required name="publisher" type="text" />
+          <label>Tiempo (min)</label><input required name="cookingTime" type="number" />
+          <label>Porciones</label><input required name="servings" type="number" />
         </div>
+
         <div class="upload__column">
           <h3 class="upload__heading">Ingredientes</h3>
-          <label>Ingrediente 1</label><input name="ingredient-1" type="text" placeholder="Cantidad,Unidad,Descripción" />
-          <label>Ingrediente 2</label><input name="ingredient-2" type="text" placeholder="Cantidad,Unidad,Descripción" />
-          <label>Ingrediente 3</label><input name="ingredient-3" type="text" placeholder="Cantidad,Unidad,Descripción" />
-          <label>Ingrediente 4</label><input name="ingredient-4" type="text" placeholder="Cantidad,Unidad,Descripción" />
-          <label>Ingrediente 5</label><input name="ingredient-5" type="text" placeholder="Cantidad,Unidad,Descripción" />
-          <label>Ingrediente 6</label><input name="ingredient-6" type="text" placeholder="Cantidad,Unidad,Descripción" />
+          <label>Ingrediente 1</label>
+          <input value="0.5,kg,Arroz" type="text" required name="ingredient-1" placeholder="Cantidad,Unidad,Descripción" />
+          <label>Ingrediente 2</label>
+          <input value="1,,Aguacate" type="text" name="ingredient-2" placeholder="Cantidad,Unidad,Descripción" />
+          <label>Ingrediente 3</label>
+          <input value=",,Sal" type="text" name="ingredient-3" placeholder="Cantidad,Unidad,Descripción" />
+          <label>Ingrediente 4</label>
+          <input type="text" name="ingredient-4" placeholder="Cantidad,Unidad,Descripción" />
+          <label>Ingrediente 5</label>
+          <input type="text" name="ingredient-5" placeholder="Cantidad,Unidad,Descripción" />
+          <label>Ingrediente 6</label>
+          <input type="text" name="ingredient-6" placeholder="Cantidad,Unidad,Descripción" />
         </div>
+
         <button class="btn upload__btn" type="submit">
           <svg aria-hidden="true"><use href="src/img/icons.svg#icon-upload-cloud"></use></svg>
           <span>Subir</span>

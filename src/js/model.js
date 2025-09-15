@@ -4,7 +4,6 @@ import { AJAX } from './helpers.js';
 export const state = {
   recipe: {},
   search: { query: '', results: [], page: 1, resultsPerPage: RES_PER_PAGE },
-  bookmarks: [],
 };
 
 const createRecipeObject = function (data) {
@@ -25,7 +24,6 @@ const createRecipeObject = function (data) {
 export const loadRecipe = async function (id) {
   const data = await AJAX(`${API_URL}${id}?key=${KEY}`);
   state.recipe = createRecipeObject(data);
-  state.recipe.bookmarked = state.bookmarks.some(b => b.id === id);
 };
 
 export const loadSearchResults = async function (query) {
