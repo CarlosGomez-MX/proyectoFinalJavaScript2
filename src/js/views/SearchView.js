@@ -1,19 +1,16 @@
 // src/js/views/SearchView.js
 class SearchView {
-  _parentEl = document.querySelector('.search');
+  _parentEl = document.querySelector('.search'); // <form class="search">
+  _input = this._parentEl?.querySelector('.search__field');
 
   getQuery() {
-    const query = this._parentEl.querySelector('.search__field').value.trim();
-    this._clearInput();
+    const query = this._input?.value?.trim() ?? '';
+    if (this._input) this._input.value = '';
     return query;
   }
 
-  _clearInput() {
-    this._parentEl.querySelector('.search__field').value = '';
-  }
-
-  // Pub/Sub: la vista “publica” el submit del formulario de búsqueda
   addHandlerSearch(handler) {
+    if (!this._parentEl) return;
     this._parentEl.addEventListener('submit', e => {
       e.preventDefault();
       handler();

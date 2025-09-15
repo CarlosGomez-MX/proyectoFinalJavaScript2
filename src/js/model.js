@@ -1,56 +1,64 @@
 // src/js/model.js
-import { API_URL } from './config.js';
-import { getJSON } from './helpers.js';
+import { API_URL, RES_PER_PAGE, KEY } from './config.js';
+import { AJAX } from './helpers.js';
 
 export const state = {
   recipe: {},
-
-  // Avance 3: estado de búsqueda
   search: {
     query: '',
     results: [],
+    page: 1,                       // página actual
+    resultsPerPage: RES_PER_PAGE,  // elementos por página
   },
+  bookmarks: [],
+};
+
+const createRecipeObject = function (data) {
+  const { recipe } = data.data;
+  return {
+    id: recipe.id,
+    title: recipe.title,
+    publisher: recipe.publisher,
+    sourceUrl: recipe.source_url,
+    image: recipe.image_url,
+    servings: recipe.servings,
+    cookingTime: recipe.cooking_time,
+    ingredients: recipe.ingredients,
+    ...(recipe.key && { key: recipe.key }),
+  };
 };
 
 export const loadRecipe = async function (id) {
   try {
-    const data = await getJSON(`${API_URL}${id}`);
-
-    const { recipe } = data.data;
-    state.recipe = {
-      id: recipe.id,
-      title: recipe.title,
-      publisher: recipe.publisher,
-      sourceUrl: recipe.source_url,
-      image: recipe.image_url,
-      servings: recipe.servings,
-      cookingTime: recipe.cooking_time,
-      ingredients: recipe.ingredients,
-    };
+    const data = await AJAX(`${API_URL}${id}?key=${KEY}`);
+    state.recipe = createRecipeObject(data);
+    state.recipe.bookmarked = state.bookmarks.some(b => b.id === id);
   } catch (err) {
-    // Propagar para que el controller muestre el error en la UI
     throw err;
   }
 };
 
-// Avance 3: cargar resultados de búsqueda
 export const loadSearchResults = async function (query) {
   try {
-    const data = await getJSON(`${API_URL}?search=${query}`);
-
-    // guardar query y resultados en el state
     state.search.query = query;
-    state.search.results = data.data.recipes.map(rec => {
-      return {
-        id: rec.id,
-        title: rec.title,
-        publisher: rec.publisher,
-        image: rec.image_url,
-      };
-    });
+    const data = await AJAX(`${API_URL}?search=${query}&key=${KEY}`);
+    state.search.results = data.data.recipes.map(rec => ({
+      id: rec.id,
+      title: rec.title,
+      publisher: rec.publisher,
+      image: rec.image_url,
+      ...(rec.key && { key: rec.key }),
+    }));
+    state.search.page = 1; // reset a primera página en cada búsqueda
   } catch (err) {
-    // log breve y propagar
-    console.log(`${err}\n`);
     throw err;
   }
+};
+
+// devuelve el "slice" para la página solicitada
+export const getSearchResultsPage = function (page = state.search.page) {
+  state.search.page = page;
+  const start = (page - 1) * state.search.resultsPerPage; // inclusive
+  const end = page * state.search.resultsPerPage;         // exclusive
+  return state.search.results.slice(start, end);
 };

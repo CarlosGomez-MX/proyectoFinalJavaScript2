@@ -1,59 +1,66 @@
 // src/js/controller.js
 import * as model from './model.js';
 import recipeView from './views/RecipeView.js';
-import searchView from './views/SearchView.js';
 import resultsView from './views/ResultsView.js';
+import bookmarksView from './views/bookmarksView.js';
+import searchView from './views/SearchView.js';
+import paginationView from './views/PaginationView.js';
 
-// === PARCHE PARA ÍCONOS EN index.html (se mantiene) ===
-const SPRITE_URL = new URL('../img/icons.svg', import.meta.url).href;
-function fixStaticSvgUses() {
-  const uses = document.querySelectorAll('svg use[href^="src/img/icons.svg#"]');
-  uses.forEach(use => {
-    const href = use.getAttribute('href');
-    const id = href.split('#')[1];
-    use.setAttribute('href', `${SPRITE_URL}#${id}`);
-  });
-}
-fixStaticSvgUses();
-// === FIN PARCHE ÍCONOS ===
+const controlSearchResults = async function () {
+  try {
+    // 1) Tomar query (si está vacío, NO spinner)
+    const query = searchView.getQuery();
+    if (!query) {
+      // ← sin emoji al final
+      resultsView.renderMessage('Escribe un término de búsqueda');
+      paginationView.render({ results: [], page: 1, resultsPerPage: 10 });
+      return;
+    }
 
-async function controlRecipes() {
+    // 2) Spinner y carga
+    resultsView.renderSpinner();
+    await model.loadSearchResults(query);
+
+    // 3) Página 1 y paginación
+    resultsView.render(model.getSearchResultsPage());
+    paginationView.render(model.state.search);
+  } catch (err) {
+    console.error(err);
+    resultsView.renderError('Ups, no pudimos completar la búsqueda.');
+  }
+};
+
+const controlPagination = function (goToPage) {
+  resultsView.render(model.getSearchResultsPage(goToPage));
+  paginationView.render(model.state.search);
+};
+
+const controlRecipes = async function () {
   try {
     const id = window.location.hash.slice(1);
     if (!id) return;
 
     recipeView.renderSpinner();
+    resultsView.update(model.getSearchResultsPage(model.state.search.page));
     await model.loadRecipe(id);
     recipeView.render(model.state.recipe);
+    bookmarksView.update(model.state.bookmarks);
   } catch (err) {
-    recipeView.renderError();
+    recipeView.renderError('No pudimos cargar la receta. Intenta con otra.');
+    console.error(err);
   }
-}
+};
 
-// Avance 3: controlador de búsqueda
-async function controlSearchResults() {
-  try {
-    // 1) tomar query desde la vista
-    const query = searchView.getQuery();
-    if (!query) return;
-
-    // 2) spinner en la zona de resultados
-    resultsView.renderSpinner();
-
-    // 3) cargar resultados
-    await model.loadSearchResults(query);
-
-    // 4) renderizar resultados
-    resultsView.render(model.state.search.results);
-  } catch (err) {
-    // mostrar error en la zona de resultados
-    resultsView.renderError('Search failed. Please try again.');
-  }
-}
-
-// Init: pub/sub
-function init() {
-  recipeView.addHandlerRender(controlRecipes);
+const init = function () {
+  bookmarksView.addHandlerRender?.(() => {
+    bookmarksView.render?.(model.state.bookmarks);
+  });
+  recipeView.addHandlerRender?.(controlRecipes);
   searchView.addHandlerSearch(controlSearchResults);
-}
+  paginationView.addHandlerClick(controlPagination);
+
+  // ✅ Mensaje inicial EN EL PANEL DERECHO (con carita grande):
+  // (si lo quieres en inglés, cambia el string)
+  recipeView.renderMessage('Empieza buscando una receta o un ingrediente. ¡Diviértete!');
+};
 init();
