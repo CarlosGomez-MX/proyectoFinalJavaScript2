@@ -1,12 +1,11 @@
-// src/js/views/SearchView.js
 class SearchView {
-  _parentEl = document.querySelector('.search'); // <form class="search">
+  _parentEl = document.querySelector('.search');
   _input = this._parentEl?.querySelector('.search__field');
 
   getQuery() {
-    const query = this._input?.value?.trim() ?? '';
+    const q = this._input?.value?.trim() ?? '';
     if (this._input) this._input.value = '';
-    return query;
+    return q;
   }
 
   addHandlerSearch(handler) {
@@ -17,5 +16,4 @@ class SearchView {
     });
   }
 }
-
 export default new SearchView();

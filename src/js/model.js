@@ -1,15 +1,9 @@
-// src/js/model.js
 import { API_URL, RES_PER_PAGE, KEY } from './config.js';
 import { AJAX } from './helpers.js';
 
 export const state = {
   recipe: {},
-  search: {
-    query: '',
-    results: [],
-    page: 1,                       // página actual
-    resultsPerPage: RES_PER_PAGE,  // elementos por página
-  },
+  search: { query: '', results: [], page: 1, resultsPerPage: RES_PER_PAGE },
   bookmarks: [],
 };
 
@@ -29,36 +23,27 @@ const createRecipeObject = function (data) {
 };
 
 export const loadRecipe = async function (id) {
-  try {
-    const data = await AJAX(`${API_URL}${id}?key=${KEY}`);
-    state.recipe = createRecipeObject(data);
-    state.recipe.bookmarked = state.bookmarks.some(b => b.id === id);
-  } catch (err) {
-    throw err;
-  }
+  const data = await AJAX(`${API_URL}${id}?key=${KEY}`);
+  state.recipe = createRecipeObject(data);
+  state.recipe.bookmarked = state.bookmarks.some(b => b.id === id);
 };
 
 export const loadSearchResults = async function (query) {
-  try {
-    state.search.query = query;
-    const data = await AJAX(`${API_URL}?search=${query}&key=${KEY}`);
-    state.search.results = data.data.recipes.map(rec => ({
-      id: rec.id,
-      title: rec.title,
-      publisher: rec.publisher,
-      image: rec.image_url,
-      ...(rec.key && { key: rec.key }),
-    }));
-    state.search.page = 1; // reset a primera página en cada búsqueda
-  } catch (err) {
-    throw err;
-  }
+  state.search.query = query;
+  const data = await AJAX(`${API_URL}?search=${query}&key=${KEY}`);
+  state.search.results = data.data.recipes.map(r => ({
+    id: r.id,
+    title: r.title,
+    publisher: r.publisher,
+    image: r.image_url,
+    ...(r.key && { key: r.key }),
+  }));
+  state.search.page = 1;
 };
 
-// devuelve el "slice" para la página solicitada
 export const getSearchResultsPage = function (page = state.search.page) {
   state.search.page = page;
-  const start = (page - 1) * state.search.resultsPerPage; // inclusive
-  const end = page * state.search.resultsPerPage;         // exclusive
+  const start = (page - 1) * state.search.resultsPerPage;
+  const end = page * state.search.resultsPerPage;
   return state.search.results.slice(start, end);
 };
