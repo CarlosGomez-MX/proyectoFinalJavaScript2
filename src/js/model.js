@@ -4,6 +4,12 @@ import { getJSON } from './helpers.js';
 
 export const state = {
   recipe: {},
+
+  // Avance 3: estado de búsqueda
+  search: {
+    query: '',
+    results: [],
+  },
 };
 
 export const loadRecipe = async function (id) {
@@ -22,8 +28,29 @@ export const loadRecipe = async function (id) {
       ingredients: recipe.ingredients,
     };
   } catch (err) {
-    // Importante: propagar para que el controller pueda pintar el error en la UI
-    console.error('model.loadRecipe ->', err);
+    // Propagar para que el controller muestre el error en la UI
+    throw err;
+  }
+};
+
+// Avance 3: cargar resultados de búsqueda
+export const loadSearchResults = async function (query) {
+  try {
+    const data = await getJSON(`${API_URL}?search=${query}`);
+
+    // guardar query y resultados en el state
+    state.search.query = query;
+    state.search.results = data.data.recipes.map(rec => {
+      return {
+        id: rec.id,
+        title: rec.title,
+        publisher: rec.publisher,
+        image: rec.image_url,
+      };
+    });
+  } catch (err) {
+    // log breve y propagar
+    console.log(`${err}\n`);
     throw err;
   }
 };
